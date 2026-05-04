@@ -1,15 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Este é o seu arquivo de esquema Prisma revisado para o projeto Deco Imports
+// Ele está configurado para o PostgreSQL (Supabase) conforme seu arquivo .env
 
 generator client {
   provider = "prisma-client-js"
-  engineType = "binary"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -50,7 +47,7 @@ model Product {
   historyOrigin String?     // Texto de história e origem do perfume
   price         Float
   stock         Int         @default(0)
-  images        String      // Will store JSON string array of image URLs
+  images        String      // Armazena array de URLs em formato JSON string
   categoryId    String
   category      Category    @relation(fields: [categoryId], references: [id])
   isLaunch      Boolean     @default(false) // Lançamento
@@ -61,31 +58,31 @@ model Product {
 }
 
 model PerfumeStory {
-  id          String   @id @default(cuid())
-  title       String
-  content     String
-  category    StoryCategory
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String        @id @default(cuid())
+  title     String
+  content   String
+  category  StoryCategory
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 enum StoryCategory {
-  ORIENTAL_LUXURY    // Luxo Oriental
-  GREAT_BRANDS       // Grandes Grifes
-  GENERAL_CURIOSITIES // Curiosidades Gerais
+  ORIENTAL_LUXURY     // Luxo Oriental
+  GREAT_BRANDS        // Grandes Grifes
+  GENERAL_CURIOSITIES  // Curiosidades Gerais
 }
 
 model Order {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  status     OrderStatus @default(PENDING)
-  total      Float
-  shipping   Float       @default(0)
-  items      OrderItem[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  status    OrderStatus @default(PENDING)
+  total     Float
+  shipping  Float       @default(0)
+  items     OrderItem[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -113,13 +110,13 @@ enum PaymentGateway {
 }
 
 model PaymentConfig {
-  id                String         @id @default(cuid())
-  gatewayAtivo      PaymentGateway
-  pagseguroEmail    String?
-  pagseguroToken    String?
-  stripeSecretKey   String?
-  stripePublicKey   String?
-  mercadopagoKey    String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  gatewayAtivo    PaymentGateway
+  pagseguroEmail  String?
+  pagseguroToken  String?
+  stripeSecretKey String?
+  stripePublicKey String?
+  mercadopagoKey  String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
