@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
     console.error("Error creating category:", error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (error.code === "P2002") {
       return NextResponse.json({ error: "Já existe uma categoria com esse nome." }, { status: 409 });
     }
     return NextResponse.json({ error: error.message || "Failed to create category" }, { status: 500 });
