@@ -55,7 +55,7 @@ export default async function CategoryPage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* CORREÇÃO AQUI: Usando 'products' em vez de 'featuredProducts' */}
-          {products.map((product: any) => {
+          {products.map((product: Product) => {
             const images = product.images ? JSON.parse(product.images) : [];
             const imageUrl = images.length > 0 ? images[0] : "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=500&auto=format&fit=crop";
 
