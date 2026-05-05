@@ -35,7 +35,7 @@ export default async function CategoryPage({
     );
   }
 
-  // Fetch products for this category
+  // Busca os produtos desta categoria
   const products = await prisma.product.findMany({
     where: { categoryId: category.id },
     orderBy: { createdAt: 'desc' }
@@ -54,7 +54,8 @@ export default async function CategoryPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {featuredProducts.map((product: any, index: any) => {
+          {/* CORREÇÃO AQUI: Usando 'products' em vez de 'featuredProducts' */}
+          {products.map((product: any) => {
             const images = product.images ? JSON.parse(product.images) : [];
             const imageUrl = images.length > 0 ? images[0] : "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=500&auto=format&fit=crop";
 
