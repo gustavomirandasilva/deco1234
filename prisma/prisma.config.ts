@@ -1,11 +1,13 @@
-// prisma.config.ts
+import { PrismaClient } from "@prisma/client";
 
-// ... outras importações ...
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-export default defineConfig({
-  datasource: {
-    url: process.env["DATABASE_URL"],
-    // REMOVA A LINHA ABAIXO:
-    // directUrl: process.env["DIRECT_URL"], 
-  },
-});
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: ["query"],
+  });
+
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+export default prisma;
