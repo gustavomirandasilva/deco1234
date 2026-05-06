@@ -50,6 +50,12 @@
 
 
 
+# prisma generated client
+
+/prisma/generated-client
+
+
+
 # debug
 
 npm-debug.log*
@@ -83,4 +89,5 @@ next-env.d.ts
 
 
 /src/generated/prisma
-
+# prisma generated client
+/prisma/generated-client

@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+// Importe do novo local que definimos no schema
+import { PrismaClient } from '../../prisma/generated-client'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
