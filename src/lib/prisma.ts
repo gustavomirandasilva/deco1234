@@ -2,11 +2,17 @@ import { PrismaClient } from '@prisma/client'
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 
-// No Prisma 7, precisamos passar a URL no construtor se o schema.prisma estiver vazio
+// Pegamos a URL e garantimos que ela é uma string
+const url = process.env.DATABASE_URL
+
+if (!url) {
+  throw new Error('A variável de ambiente DATABASE_URL não foi definida!')
+}
+
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
+    datasourceUrl: url,
     log: ['query'],
   })
 
