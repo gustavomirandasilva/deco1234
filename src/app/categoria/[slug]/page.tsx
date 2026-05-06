@@ -52,7 +52,7 @@ export default async function CategoryPage({
   const products = (await prisma.product.findMany({
     where: { categoryId: category.id },
     orderBy: { createdAt: "desc" },
-  })) as unknown as Produto[];
+  }))
 
   return (
     <div className="container mx-auto px-4 py-12">
