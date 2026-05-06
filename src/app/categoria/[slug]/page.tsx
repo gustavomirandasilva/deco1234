@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-// Bug 2 corrigido: images pode ser null
-interface Product {
+// Interface definida como 'Produto' (conforme solicitado)
+interface Produto {
   id: string;
   name: string;
   images: string | null;
@@ -49,10 +49,11 @@ export default async function CategoryPage({
     );
   }
 
+  // Convertendo o resultado do Prisma para a nossa interface 'Produto'
   const products = (await prisma.product.findMany({
     where: { categoryId: category.id },
     orderBy: { createdAt: "desc" },
-  }))
+  })) as unknown as Produto[];
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -74,7 +75,7 @@ export default async function CategoryPage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((produto: Produto) => {
-            // Bug 3 corrigido: JSON.parse seguro com try/catch
+            // JSON.parse seguro com try/catch
             let images: string[] = [];
             try {
               images = produto.images ? JSON.parse(produto.images) : [];
@@ -87,7 +88,6 @@ export default async function CategoryPage({
                 ? images[0]
                 : "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=500&auto=format&fit=crop";
 
-            // Bug 1 corrigido: usando 'produto' consistentemente
             return (
               <Link
                 href={`/produto/${produto.id}`}
