@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./prisma/generated-client');
 const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
 const bcrypt = require('bcryptjs');
 
