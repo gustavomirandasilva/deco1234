@@ -7,8 +7,12 @@ const url = process.env.DATABASE_URL
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    datasourceUrl: url,
-  } as any) // O 'as any' resolve o erro de 'never' do TypeScript
+    datasources: {
+      db: {
+        url: url,
+      },
+    },
+  } as any) 
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
