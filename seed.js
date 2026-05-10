@@ -1,35 +1,61 @@
-const { PrismaClient } = require('./prisma/generated-client');
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const bcrypt = require('bcryptjs');
 
-const databaseUrl = process.env.DATABASE_URL ?? 'file:./dev.db';
-const sqliteAdapter = new PrismaBetterSqlite3({ url: databaseUrl });
+const databaseUrl = process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/postgres';
+const pgAdapter = new PrismaPg({ connectionString: databaseUrl });
 
 const prisma = new PrismaClient({
-  adapter: sqliteAdapter,
+  adapter: pgAdapter,
 });
 
 async function main() {
-  // Categorias padrão
-  await prisma.category.upsert({
+  const catOriental = await prisma.category.upsert({
     where: { name: 'Luxo Oriental' },
     update: {},
     create: {
       name: 'Luxo Oriental',
-      description: 'Fragrâncias intensas e marcantes do Oriente Médio, com notas amadeiradas profundas e toques de especiarias orientais'
+      description: 'Fragrâncias intensas e marcantes do Oriente Médio, com notas amadeiradas profundas e toques de especiarias orientais',
+      isActive: true,
     }
   });
 
-  await prisma.category.upsert({
+  const catGrifes = await prisma.category.upsert({
     where: { name: 'Grandes Grifes' },
     update: {},
     create: {
       name: 'Grandes Grifes',
-      description: 'Fragrâncias clássicas e sofisticadas das melhores casas de perfumaria europeias'
+      description: 'Fragrâncias clássicas e sofisticadas das melhores casas de perfumaria europeias',
+      isActive: true,
     }
   });
 
-  // Histórias/Curiosidades sobre perfumes
+  await prisma.product.upsert({
+    where: { id: 'prod-tester-1' },
+    update: {},
+    create: {
+      id: 'prod-tester-1',
+      name: 'Oud Wood Intense',
+      description: 'Um perfume luxuoso com notas de Oud.',
+      price: 850.00,
+      categoryId: catOriental.id,
+      images: JSON.stringify(['https://images.unsplash.com/photo-1541643600914-78b084683601']),
+    }
+  });
+
+  await prisma.product.upsert({
+    where: { id: 'prod-tester-2' },
+    update: {},
+    create: {
+      id: 'prod-tester-2',
+      name: 'Classic European',
+      description: 'O auge da sofisticação parisiense.',
+      price: 520.00,
+      categoryId: catGrifes.id,
+      images: JSON.stringify(['https://images.unsplash.com/photo-1594035910387-fea47794261f']),
+    }
+  });
+
   await prisma.perfumeStory.upsert({
     where: { id: 'oriental-luxury-intro' },
     update: {},

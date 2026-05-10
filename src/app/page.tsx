@@ -1,6 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
+import { parseProductImages } from "@/lib/parse-product-images";
+
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Fetch featured products (limit to 4 for the grid)
@@ -55,7 +58,7 @@ export default async function Home() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {featuredProducts.map((product, index) => {
-                const images = product.images ? JSON.parse(product.images) : [];
+                const images = parseProductImages(product.images);
                 const imageUrl = images.length > 0 ? images[0] : "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=500&auto=format&fit=crop";
 
                 return (

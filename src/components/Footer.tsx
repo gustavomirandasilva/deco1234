@@ -60,10 +60,10 @@ export default function Footer() {
             </a>
           </div>
           <div className="pt-4">
-            <h4 className="text-sm font-semibold uppercase mb-2">Pagamento Seguro</h4>
-            <div className="flex space-x-2">
-              <div className="bg-gray-800 text-xs px-2 py-1 rounded">PagSeguro</div>
-            </div>
+            <h4 className="mb-2 text-sm font-semibold uppercase">Como comprar</h4>
+            <p className="text-xs text-gray-400">
+              Monte sua sacola e finalize pelo WhatsApp. Pagamento e envio combinados diretamente com a loja.
+            </p>
           </div>
         </div>
 

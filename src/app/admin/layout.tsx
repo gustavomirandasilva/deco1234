@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FiHome, FiBox, FiList, FiLogOut, FiSettings } from "react-icons/fi";
 
+export const dynamic = "force-dynamic";
+
 export default function AdminLayout({
   children,
 }: {
@@ -33,10 +35,6 @@ export default function AdminLayout({
           <Link href="/admin/historias" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors">
             <FiSettings className="h-5 w-5" />
             <span>Histórias</span>
-          </Link>
-          <Link href="/admin/pagamentos" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors">
-            <FiSettings className="h-5 w-5" />
-            <span>Pagamentos</span>
           </Link>
         </nav>
 

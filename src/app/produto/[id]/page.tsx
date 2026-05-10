@@ -2,6 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import ProductDetailClient from "./ProductDetailClient";
 
+export const dynamic = 'force-dynamic';
+
 type ProductWithCategory = {
   id: string;
   name: string;

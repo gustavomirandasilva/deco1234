@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiPlus, FiEdit2, FiTrash2, FiImage } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiTrash2, FiImage, FiUploadCloud } from "react-icons/fi";
 import Image from "next/image";
 
 type Category = { id: string; name: string };
@@ -12,11 +12,9 @@ type Product = {
   historyOrigin?: string;
   price: number;
   stock: number;
-  images: string; // JSON string
+  images: string;
   categoryId: string;
   category?: Category;
-  isLaunch: boolean;
-  isPromotion: boolean;
 };
 
 export default function AdminProducts() {
@@ -24,10 +22,17 @@ export default function AdminProducts() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Imagens serão armazenadas como um array de strings (paths locais)
-  const [formData, setFormData] = useState({ 
-    id: "", name: "", description: "", historyOrigin: "", price: "", stock: "0", categoryId: "", images: ["", "", "", "", "", ""], isLaunch: false, isPromotion: false
+  const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    description: "",
+    historyOrigin: "",
+    price: "",
+    stock: "0",
+    categoryId: "",
+    images: ["", "", "", "", "", ""],
   });
 
   useEffect(() => {
@@ -47,7 +52,7 @@ export default function AdminProducts() {
       setCategories(data);
       setFormData((prev) => ({
         ...prev,
-        categoryId: prev.categoryId || data[0]?.id || ""
+        categoryId: prev.categoryId || data[0]?.id || "",
       }));
     }
   };
@@ -65,20 +70,16 @@ export default function AdminProducts() {
     const isEditing = !!formData.id;
     const url = isEditing ? `/api/products/${formData.id}` : "/api/products";
     const method = isEditing ? "PUT" : "POST";
-
-    // Limpar imagens vazias
-    const cleanedImages = formData.images.filter(img => img.trim() !== "");
-
-    const payload = {
-      ...formData,
-      images: cleanedImages,
-      historyOrigin: formData.historyOrigin,
-    };
+    const cleanedImages = formData.images.filter((img) => img.trim() !== "");
 
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...formData,
+        images: cleanedImages,
+        historyOrigin: formData.historyOrigin,
+      }),
     });
 
     if (res.ok) {
@@ -86,7 +87,8 @@ export default function AdminProducts() {
       resetForm();
       fetchProducts();
     } else {
-      alert("Erro ao salvar produto.");
+      const err = await res.json().catch(() => null);
+      alert(err?.error || "Erro ao salvar produto.");
     }
     setIsLoading(false);
   };
@@ -99,7 +101,16 @@ export default function AdminProducts() {
   };
 
   const resetForm = () => {
-    setFormData({ id: "", name: "", description: "", historyOrigin: "", price: "", stock: "0", categoryId: categories[0]?.id || "", images: ["", "", "", "", "", ""], isLaunch: false, isPromotion: false });
+    setFormData({
+      id: "",
+      name: "",
+      description: "",
+      historyOrigin: "",
+      price: "",
+      stock: "0",
+      categoryId: categories[0]?.id || "",
+      images: ["", "", "", "", "", ""],
+    });
   };
 
   const handleImageChange = (index: number, value: string) => {
@@ -109,20 +120,50 @@ export default function AdminProducts() {
   };
 
   const parseImages = (imagesJson: string) => {
-    try { return JSON.parse(imagesJson); } catch { return []; }
+    try {
+      return JSON.parse(imagesJson);
+    } catch {
+      return [];
+    }
+  };
+
+  const handleFileUpload = async (index: number, fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    setUploadingSlot(index);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Falha no upload");
+        return;
+      }
+      if (data.url) handleImageChange(index, data.url);
+    } finally {
+      setUploadingSlot(null);
+    }
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
-          <p className="text-gray-500 mt-1">Adicione os perfumes com até 6 fotos e descrições detalhadas.</p>
+          <p className="mt-1 text-gray-500">
+            Catálogo de perfumes. Envie imagens pelo botão de upload (Supabase Storage) ou cole uma URL
+            pública.
+          </p>
         </div>
-        <button 
-          onClick={() => { resetForm(); setIsModalOpen(true); }}
+        <button
+          type="button"
+          onClick={() => {
+            resetForm();
+            setIsModalOpen(true);
+          }}
           disabled={categories.length === 0}
-          className="bg-black text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center space-x-2 rounded-lg bg-black px-4 py-2 text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FiPlus />
           <span>Novo Produto</span>
@@ -130,20 +171,19 @@ export default function AdminProducts() {
       </div>
       {categories.length === 0 && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          Nenhuma categoria cadastrada ainda. Cadastre uma categoria em <strong>Admin &gt; Categorias</strong> antes de adicionar produtos.
+          Nenhuma categoria cadastrada. Cadastre em <strong>Admin &gt; Categorias</strong> antes.
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+      <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
             <tr>
               <th className="px-6 py-4">Foto</th>
               <th className="px-6 py-4">Nome</th>
               <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4">Preço</th>
               <th className="px-6 py-4">Estoque</th>
-              <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
@@ -156,54 +196,58 @@ export default function AdminProducts() {
                 <tr key={prod.id} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-6 py-4">
                     {mainImage ? (
-                      <div className="h-10 w-10 relative bg-gray-100 rounded overflow-hidden">
-                        <Image src={mainImage} alt={prod.name} fill className="object-cover" />
+                      <div className="relative h-10 w-10 overflow-hidden rounded bg-gray-100">
+                        <Image src={mainImage} alt={prod.name} fill className="object-cover" unoptimized />
                       </div>
                     ) : (
-                      <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-200 text-gray-400">
                         <FiImage />
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">{prod.name}</td>
                   <td className="px-6 py-4 text-gray-500">{prod.category?.name || "-"}</td>
-                  <td className="px-6 py-4 font-medium">R$ {prod.price.toFixed(2).replace('.', ',')}</td>
+                  <td className="px-6 py-4 font-medium">
+                    R$ {prod.price.toFixed(2).replace(".", ",")}
+                  </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${prod.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    <span
+                      className={`rounded px-2 py-1 text-xs font-bold ${
+                        prod.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {prod.stock} un.
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col space-y-1">
-                      {prod.isLaunch && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded">Lançamento</span>
-                      )}
-                      {prod.isPromotion && (
-                        <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded">Promoção</span>
-                      )}
-                      {!prod.isLaunch && !prod.isPromotion && (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </div>
-                  </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
                         const imgs = parseImages(prod.images);
-                        const paddedImgs = [...imgs, "", "", "", "", "", ""].slice(0, 6);
-                        setFormData({ 
-                          id: prod.id, name: prod.name, description: prod.description, historyOrigin: prod.historyOrigin ?? "",
-                          price: prod.price.toString(), stock: prod.stock.toString(), 
-                          categoryId: prod.categoryId, images: paddedImgs,
-                          isLaunch: prod.isLaunch || false, isPromotion: prod.isPromotion || false
+                        const padded = [...imgs, "", "", "", "", "", ""].slice(0, 6);
+                        setFormData({
+                          id: prod.id,
+                          name: prod.name,
+                          description: prod.description,
+                          historyOrigin: prod.historyOrigin ?? "",
+                          price: prod.price.toString(),
+                          stock: prod.stock.toString(),
+                          categoryId: prod.categoryId,
+                          images: padded,
                         });
                         setIsModalOpen(true);
-                      }} 
-                      className="text-blue-600 hover:text-blue-900 mx-2" aria-label="Editar"
+                      }}
+                      className="mx-2 text-blue-600 hover:text-blue-900"
+                      aria-label="Editar"
                     >
                       <FiEdit2 />
                     </button>
-                    <button onClick={() => handleDelete(prod.id)} className="text-red-600 hover:text-red-900" aria-label="Excluir">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(prod.id)}
+                      className="text-red-600 hover:text-red-900"
+                      aria-label="Excluir"
+                    >
                       <FiTrash2 />
                     </button>
                   </td>
@@ -212,116 +256,159 @@ export default function AdminProducts() {
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">Nenhum produto cadastrado.</td>
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  Nenhum produto cadastrado.
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Modal CRUD */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white">
+            <div className="border-b p-6">
               <h3 className="text-xl font-bold">{formData.id ? "Editar Produto" : "Novo Produto"}</h3>
             </div>
-            
-            <div className="p-6 overflow-y-auto flex-1">
-              <form id="productForm" onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Lado Esquerdo: Informações */}
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <form id="productForm" onSubmit={handleSave} className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="space-y-4">
-                  <h4 className="font-bold text-gray-700 border-b pb-2">Informações Principais</h4>
+                  <h4 className="border-b pb-2 font-bold text-gray-700">Informações</h4>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Produto</label>
-                    <input required type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black" />
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Nome</label>
+                    <input
+                      required
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                    <select required value={formData.categoryId} onChange={(e) => setFormData({...formData, categoryId: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black">
-                      <option value="">Selecione uma categoria</option>
-                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Categoria</label>
+                    <select
+                      required
+                      value={formData.categoryId}
+                      onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                    >
+                      <option value="">Selecione</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
-                      <input required type="number" step="0.01" min="0" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black" />
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Preço (R$)</label>
+                      <input
+                        required
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Estoque</label>
-                      <input required type="number" min="0" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black" />
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Estoque</label>
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        value={formData.stock}
+                        onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Descrição Explicativa (Parágrafo)</label>
-                    <textarea required value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black" rows={5} placeholder="Fale sobre as notas olfativas, projeção, fixação..." />
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Descrição</label>
+                    <textarea
+                      required
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                      rows={5}
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">História e Origem</label>
-                    <textarea value={formData.historyOrigin} onChange={(e) => setFormData({...formData, historyOrigin: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-black focus:border-black" rows={5} placeholder="Conte a origem, inspiração e história do perfume..." />
-                  </div>
-
-                  {/* Campos de Status */}
-                  <div className="space-y-3 pt-4 border-t">
-                    <h5 className="font-medium text-gray-700">Status do Produto</h5>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="isLaunch"
-                        checked={formData.isLaunch}
-                        onChange={(e) => setFormData({...formData, isLaunch: e.target.checked})}
-                        className="rounded text-blue-600 focus:ring-blue-500"
-                      />
-                      <label htmlFor="isLaunch" className="text-sm font-medium text-gray-700">Marcar como Lançamento</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="isPromotion"
-                        checked={formData.isPromotion}
-                        onChange={(e) => setFormData({...formData, isPromotion: e.target.checked})}
-                        className="rounded text-red-600 focus:ring-red-500"
-                      />
-                      <label htmlFor="isPromotion" className="text-sm font-medium text-gray-700">Marcar como Promoção</label>
-                    </div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">História e origem</label>
+                    <textarea
+                      value={formData.historyOrigin}
+                      onChange={(e) => setFormData({ ...formData, historyOrigin: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2 focus:border-black focus:ring-black"
+                      rows={4}
+                    />
                   </div>
                 </div>
 
-                {/* Lado Direito: Imagens */}
                 <div className="space-y-4">
-                  <h4 className="font-bold text-gray-700 border-b pb-2">Fotos do Produto (Até 6 imagens)</h4>
-                  <p className="text-xs text-gray-500 mb-4">Insira o caminho local da foto (ex: `/produtos/perfume1.jpg`) ou um link web (URL).</p>
-                  
-                  <div className="grid grid-cols-2 gap-3">
+                  <h4 className="border-b pb-2 font-bold text-gray-700">Fotos (até 6)</h4>
+                  <p className="text-xs text-gray-500">
+                    Use <strong>Enviar arquivo</strong> (requer bucket <code className="rounded bg-gray-100 px-1">product-images</code>{" "}
+                    e <code className="rounded bg-gray-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code> na Vercel) ou
+                    cole URL.
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {formData.images.map((img, idx) => (
-                      <div key={idx} className="relative">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Foto {idx + 1} {idx === 0 && "(Capa)"}</label>
-                        <input 
-                          type="text" 
-                          value={img} 
-                          onChange={(e) => handleImageChange(idx, e.target.value)} 
-                          className="w-full text-sm border rounded-lg px-3 py-2 focus:ring-black focus:border-black" 
-                          placeholder="/caminho/foto.jpg"
+                      <div key={idx} className="rounded-lg border p-3">
+                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                          Foto {idx + 1}
+                          {idx === 0 ? " (capa)" : ""}
+                        </label>
+                        <div className="mb-2">
+                          <label className="flex cursor-pointer items-center gap-2 text-xs text-blue-700 hover:underline">
+                            <FiUploadCloud className="h-4 w-4" />
+                            {uploadingSlot === idx ? "Enviando…" : "Enviar arquivo"}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              className="hidden"
+                              disabled={uploadingSlot !== null}
+                              onChange={(e) => handleFileUpload(idx, e.target.files)}
+                            />
+                          </label>
+                        </div>
+                        <input
+                          type="text"
+                          value={img}
+                          onChange={(e) => handleImageChange(idx, e.target.value)}
+                          className="w-full rounded border px-2 py-1.5 text-sm"
+                          placeholder="https://…"
                         />
-                        {img && (
-                          <div className="absolute right-2 top-7 h-6 w-6 bg-gray-100 border rounded overflow-hidden">
-                            <Image src={img} alt="preview" fill className="object-cover" unoptimized />
+                        {img ? (
+                          <div className="relative mt-2 aspect-square w-full max-w-[120px] overflow-hidden rounded bg-gray-100">
+                            <Image src={img} alt="" fill className="object-cover" unoptimized />
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>
                 </div>
-
               </form>
             </div>
-            
-            <div className="p-6 border-t bg-gray-50 flex justify-end space-x-3">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border bg-white rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button type="submit" form="productForm" disabled={isLoading || !formData.categoryId} className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50">
-                {isLoading ? "Salvando..." : "Salvar Produto"}
+
+            <div className="flex justify-end gap-3 border-t bg-gray-50 p-6">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="rounded-lg border bg-white px-4 py-2 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                form="productForm"
+                disabled={isLoading || !formData.categoryId}
+                className="rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                {isLoading ? "Salvando…" : "Salvar"}
               </button>
             </div>
           </div>

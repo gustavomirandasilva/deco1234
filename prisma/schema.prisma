@@ -1,30 +1,9 @@
-// Este é o seu arquivo de esquema Prisma revisado para o projeto Deco Imports
-// Ele está configurado para o PostgreSQL (Supabase) conforme seu arquivo .env
-
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "library"
-  output     = "./prisma/generated-client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-}
-
-model User {
-  id         String   @id @default(cuid())
-  name       String?
-  email      String   @unique
-  password   String
-  cpf        String?  @unique
-  address    String?
-  cep        String?
-  phone      String?
-  newsletter Boolean  @default(false)
-  role       Role     @default(USER)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  orders     Order[]
+  provider = "postgresql"
 }
 
 enum Role {
@@ -32,8 +11,23 @@ enum Role {
   ADMIN
 }
 
+model User {
+  id         String   @id @default(uuid())
+  name       String?
+  email      String   @unique
+  password   String
+  cpf        String?
+  phone      String?
+  cep        String?
+  address    String?
+  newsletter Boolean  @default(false)
+  role       Role     @default(USER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model Category {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   name        String    @unique
   description String?
   isActive    Boolean   @default(true)
@@ -43,82 +37,25 @@ model Category {
 }
 
 model Product {
-  id            String      @id @default(cuid())
+  id            String   @id @default(uuid())
   name          String
-  description   String
-  historyOrigin String?     // Texto de história e origem do perfume
+  description   String?
+  historyOrigin String?
   price         Float
-  stock         Int         @default(0)
-  images        String      // Armazena array de URLs em formato JSON string
+  stock         Int      @default(0)
+  images        String   @default("[]")
   categoryId    String
-  category      Category    @relation(fields: [categoryId], references: [id])
-  isLaunch      Boolean     @default(false) // Lançamento
-  isPromotion   Boolean     @default(false) // Promoção
-  orderItems    OrderItem[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  category      Category @relation(fields: [categoryId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model PerfumeStory {
-  id        String        @id @default(cuid())
+  id        String   @id @default(uuid())
   title     String
   content   String
-  category  StoryCategory
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-}
-
-enum StoryCategory {
-  ORIENTAL_LUXURY     // Luxo Oriental
-  GREAT_BRANDS        // Grandes Grifes
-  GENERAL_CURIOSITIES  // Curiosidades Gerais
-}
-
-model Order {
-  id        String      @id @default(cuid())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id])
-  status    OrderStatus @default(PENDING)
-  total     Float
-  shipping  Float       @default(0)
-  items     OrderItem[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-}
-
-model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-}
-
-enum OrderStatus {
-  PENDING
-  PAID
-  SHIPPED
-  DELIVERED
-  CANCELED
-}
-
-enum PaymentGateway {
-  PAGSEGURO
-  STRIPE
-  MERCADOPAGO
-}
-
-model PaymentConfig {
-  id              String         @id @default(cuid())
-  gatewayAtivo    PaymentGateway
-  pagseguroEmail  String?
-  pagseguroToken  String?
-  stripeSecretKey String?
-  stripePublicKey String?
-  mercadopagoKey  String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  category  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

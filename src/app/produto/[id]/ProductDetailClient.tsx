@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { FiTruck } from "react-icons/fi";
+import { parseProductImages } from "@/lib/parse-product-images";
 
 type Product = {
   id: string;
@@ -21,12 +23,8 @@ type Product = {
 const placeholderImage = "https://images.unsplash.com/photo-1594035910387-fea47794261f?q=80&w=500&auto=format&fit=crop";
 
 export default function ProductDetailClient({ product }: { product: Product }) {
-  let images: string[] = [];
-  try {
-    images = product.images ? JSON.parse(product.images) : [];
-  } catch (error) {
-    images = [];
-  }
+  const router = useRouter();
+  const images = parseProductImages(product.images);
 
   const [mainImage, setMainImage] = useState(images.length > 0 ? images[0] : placeholderImage);
 
@@ -71,7 +69,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
     localStorage.setItem('cartItems', JSON.stringify(currentCart));
     window.dispatchEvent(new Event('cartUpdated'));
-    alert(`Iniciar compra de: ${product.name}`);
+    router.push("/checkout");
   };
 
   return (
@@ -137,7 +135,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               onClick={handleBuyNow}
               className="w-full border-2 border-black text-black font-bold uppercase tracking-widest py-4 hover:bg-black hover:text-white transition-colors"
             >
-              Comprar Agora (PagSeguro)
+              Pedir pelo WhatsApp
             </button>
           </div>
 

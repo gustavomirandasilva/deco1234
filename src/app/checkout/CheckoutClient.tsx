@@ -1,144 +1,123 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FiLock, FiCheckCircle } from "react-icons/fi";
+import Image from "next/image";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
+
+type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+};
+
+function readCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("cartItems");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatOrderMessage(items: CartItem[]): string {
+  const lines = items.map(
+    (i) => `• ${i.quantity}x ${i.name} — R$ ${(i.price * i.quantity).toFixed(2).replace(".", ",")}`,
+  );
+  const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  return [
+    "Olá! Quero fechar um pedido na Deco Imports:",
+    "",
+    ...lines,
+    "",
+    `Total: R$ ${total.toFixed(2).replace(".", ",")}`,
+    "",
+    "Podem me orientar sobre pagamento e envio?",
+  ].join("\n");
+}
 
 export default function CheckoutClient() {
-  const [step, setStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [items, setItems] = useState<CartItem[]>([]);
 
-  const handlePayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsProcessing(true);
+  useEffect(() => {
+    setItems(readCart());
+  }, []);
 
-    // Aqui seria a chamada para /api/checkout
-    // Por enquanto, simula
-    setTimeout(() => {
-      setIsProcessing(false);
-      setStep(3); // Tela de Sucesso
-    }, 2000);
-  };
+  const waHref = useMemo(() => buildWhatsAppLink(formatOrderMessage(items)), [items]);
 
-  if (step === 3) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 bg-gray-50">
-        <FiCheckCircle className="h-20 w-20 text-green-500 mb-6" />
-        <h1 className="text-3xl font-bold font-playfair uppercase tracking-widest mb-2 text-center">
-          Pedido Confirmado!
-        </h1>
-        <p className="text-gray-600 mb-8 text-center max-w-md">
-          Sua compra foi processada com sucesso via PagSeguro. Você receberá um e-mail com os detalhes do envio.
-        </p>
-        <Link href="/" className="bg-black text-white px-8 py-3 uppercase tracking-widest font-bold text-sm hover:bg-gray-800 transition-colors">
-          Voltar para a Loja
-        </Link>
-      </div>
-    );
-  }
+  const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold font-playfair uppercase tracking-widest mb-8 text-center">
-        Finalizar Compra
+    <div className="container mx-auto max-w-3xl px-4 py-12">
+      <h1 className="mb-2 text-center font-playfair text-3xl font-bold uppercase tracking-widest">
+        Finalizar pedido
       </h1>
+      <p className="mb-8 text-center text-sm text-gray-600">
+        Não processamos pagamento neste site. Envie seu pedido pelo WhatsApp e combinamos entrega e forma de
+        pagamento diretamente com você.
+      </p>
 
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-
-        {/* Lado Esquerdo - Formulários */}
-        <div className="md:col-span-2 space-y-6">
-
-          {/* Endereço de Entrega */}
-          <div className={`border p-6 rounded-xl ${step === 1 ? 'border-black bg-white shadow-sm' : 'border-gray-200 bg-gray-50'}`}>
-            <h2 className="text-xl font-bold mb-4 uppercase tracking-wide">1. Entrega</h2>
-            {step === 1 ? (
-              <form onSubmit={(e) => { e.preventDefault(); setStep(2); }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">CEP</label>
-                    <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" placeholder="00000-000" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Número</label>
-                    <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Rua / Avenida</label>
-                  <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" />
-                </div>
-                <button type="submit" className="bg-black text-white px-6 py-2 uppercase text-sm font-bold mt-4 hover:bg-gray-800">
-                  Continuar para Pagamento
-                </button>
-              </form>
-            ) : (
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">Rua Exemplo, 123 - São Paulo, SP</span>
-                <button onClick={() => setStep(1)} className="text-black font-bold underline">Editar</button>
-              </div>
-            )}
-          </div>
-
-          {/* Pagamento (PagSeguro Simulado) */}
-          <div className={`border p-6 rounded-xl ${step === 2 ? 'border-black bg-white shadow-sm' : 'border-gray-200 bg-gray-50 opacity-50'}`}>
-            <div className="flex items-center space-x-2 mb-4">
-              <h2 className="text-xl font-bold uppercase tracking-wide">2. Pagamento</h2>
-              <FiLock className="text-green-600" />
-            </div>
-
-            {step === 2 && (
-              <form onSubmit={handlePayment} className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6 text-sm text-blue-800">
-                  Transação 100% segura criptografada pelo <strong>PagSeguro</strong>.
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Número do Cartão</label>
-                  <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" placeholder="0000 0000 0000 0000" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Validade</label>
-                    <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" placeholder="MM/AA" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Cód. Segurança (CVV)</label>
-                    <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" placeholder="123" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-600 mb-1">Nome no Cartão</label>
-                  <input required type="text" className="w-full border p-2 rounded focus:ring-black focus:border-black" placeholder="NOME IMPRESSO" />
-                </div>
-
-                <button type="submit" disabled={isProcessing} className="w-full bg-green-600 text-white px-6 py-4 uppercase text-sm font-bold mt-4 hover:bg-green-700 disabled:opacity-50">
-                  {isProcessing ? "Processando Pagamento..." : "Finalizar Compra"}
-                </button>
-              </form>
-            )}
-          </div>
+      {items.length === 0 ? (
+        <div className="rounded-xl border bg-gray-50 p-8 text-center">
+          <p className="mb-4 text-gray-600">Sua sacola está vazia.</p>
+          <Link
+            href="/produtos"
+            className="inline-block bg-black px-8 py-3 text-sm font-bold uppercase tracking-widest text-white hover:bg-gray-800"
+          >
+            Ver perfumes
+          </Link>
         </div>
+      ) : (
+        <>
+          <ul className="mb-8 divide-y rounded-xl border bg-white">
+            {items.map((item) => (
+              <li key={item.id} className="flex gap-4 p-4">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-gray-100">
+                  {item.image ? (
+                    <Image src={item.image} alt="" fill className="object-cover" unoptimized />
+                  ) : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-gray-900">{item.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {item.quantity} × R$ {item.price.toFixed(2).replace(".", ",")}
+                  </p>
+                </div>
+                <p className="shrink-0 font-bold">
+                  R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
+                </p>
+              </li>
+            ))}
+          </ul>
 
-        {/* Lado Direito - Resumo do Pedido */}
-        <div className="bg-gray-50 border p-6 rounded-xl h-fit">
-          <h2 className="text-lg font-bold mb-4 uppercase tracking-wide border-b pb-4">Resumo do Pedido</h2>
-
-          <div className="flex justify-between text-sm mb-3">
-            <span className="text-gray-600">Subtotal</span>
-            <span className="font-medium">R$ 599,00</span>
+          <div className="mb-8 flex items-center justify-between border-t pt-4">
+            <span className="text-lg font-bold uppercase tracking-widest">Total</span>
+            <span className="text-xl font-bold">R$ {total.toFixed(2).replace(".", ",")}</span>
           </div>
-          <div className="flex justify-between text-sm mb-4">
-            <span className="text-gray-600">Frete (SEDEX)</span>
-            <span className="font-medium">R$ 35,90</span>
-          </div>
 
-          <div className="border-t pt-4 flex justify-between items-center">
-            <span className="font-bold uppercase tracking-widest text-lg">Total</span>
-            <span className="font-bold text-xl">R$ 634,90</span>
-          </div>
-          <p className="text-xs text-gray-500 mt-2 text-right">em até 6x de R$ 105,81 s/ juros</p>
-        </div>
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center bg-green-600 py-4 text-sm font-bold uppercase tracking-widest text-white hover:bg-green-700"
+          >
+            Enviar pedido no WhatsApp
+          </a>
 
+          <p className="mt-4 text-center text-xs text-gray-500">
+            Você será redirecionado para o WhatsApp com a lista do pedido já preenchida.
+          </p>
+        </>
+      )}
+
+      <div className="mt-10 text-center">
+        <Link href="/produtos" className="text-sm font-medium text-black underline">
+          Continuar comprando
+        </Link>
       </div>
     </div>
   );
