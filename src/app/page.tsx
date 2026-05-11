@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { parseProductImages } from "@/lib/parse-product-images";
+import StorySection from "@/components/StorySection";
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +109,8 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+
+      <StorySection />
     </div>
   );
 }

@@ -10,7 +10,8 @@
     "seed": "node -r dotenv/config seed.js",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "admin:promote": "node scripts/promote-admin.mjs"
   },
   "dependencies": {
     "@prisma/client": "^7.8.0",
